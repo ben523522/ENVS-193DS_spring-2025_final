@@ -37,6 +37,7 @@ Average nitrogen load differs among sources such as urban land, atmospheric depo
 # Load required libraries
 library(tidyverse)
 library(lubridate)
+library(dplyr)
 
 # Read the data
 sst_data <- read_csv("data/SST_update2023.csv")
@@ -50,15 +51,80 @@ sst_clean <- sst_data %>%
   # Group by year and month
   group_by(year, month) %>%
   # Calculate mean temperature for each month
-  summarise(mean_mnthly_sst = mean(temp, na.rm = TRUE)) %>%
+  summarise(mean_mnthly_sst = round(mean(temp, na.rm = TRUE), 1)) %>%
   # Arrange chronologically
   arrange(year, month) %>%
   # Convert to data frame
   as.data.frame()
 
 # View the result
-head(sst_clean)
-
-
+slice_sample(sst_clean, n = 5)
+str(sst_clean)
 
 ```
+
+### b. 
+
+```{r}
+
+
+#| fig-height: 5
+#| fig-width: 10
+#| fig-align: center
+#| warning: false
+
+library(ggplot2)
+library(dplyr)
+library(lubridate)
+
+# Prepare the data
+sst_recent <- sst_clean %>% 
+  filter(year >= 2018 & year <= 2023) %>%
+  mutate(month_abb = month.abb[month],
+         month_abb = factor(month_abb, levels = month.abb),
+         year = factor(year))  # Convert year to factor for proper coloring
+
+# Create gradient color palette (light to dark green)
+year_palette <- colorRampPalette(c("#e5f5e0", "#006d2c"))(length(unique(sst_recent$year)))
+
+ggplot(sst_recent, aes(x = month_abb, y = mean_mnthly_sst, 
+                       group = year, color = year)) +
+  # Geometries
+  geom_line(linewidth = 1.2, alpha = 0.8) +
+  geom_point(size = 3, alpha = 0.8) +
+  
+  # Color scale (light to dark green gradient)
+  scale_color_manual(values = year_palette, name = "Year") +
+  
+  # Labels and text
+  labs(title = "Monthly Average Sea Surface Temperature (2018-2023)",
+       x = "Month of Observation",
+       y = "Temperature (°C)",
+       caption = "Data source: NOAA SST Monitoring Network") +
+  
+  # Theme adjustments
+  theme_minimal(base_size = 12) +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 16, face = "bold", margin = margin(b = 15)),
+    axis.title.x = element_text(size = 12, margin = margin(t = 10)),
+    axis.title.y = element_text(size = 12, margin = margin(r = 10)),
+    axis.text.x = element_text(angle = 45, hjust = 1, size = 10),
+    axis.text.y = element_text(size = 10),
+    legend.title = element_text(size = 12, face = "bold"),
+    legend.text = element_text(size = 10),
+    legend.position = c(0.1, 0.8),  # Inside panel position
+    legend.background = element_rect(fill = "white", color = "gray50"),
+    panel.background = element_rect(fill = "white", color = "black"),  # Panel border
+    panel.grid.major = element_line(color = "gray90"),
+    panel.grid.minor = element_blank(),
+    plot.caption = element_text(size = 9, color = "gray50", hjust = 1)
+  )
+```
+
+## Problem 3
+
+### a.
+
+the 1 is placed in the column representing occupation by a specific bird species or emptiness.
+
+### b. 
