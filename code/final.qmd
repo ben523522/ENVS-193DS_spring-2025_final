@@ -128,3 +128,262 @@ ggplot(sst_recent, aes(x = month_abb, y = mean_mnthly_sst,
 the 1 is placed in the column representing occupation by a specific bird species or emptiness.
 
 ### b. 
+
+The main difference is that Swift Parrots are the native target species for nest box conservation, while Common Starlings are invasive competitors and Tree Martins are native but non-target competitors. The study wants to analyze if providing box habitat helps the competitor more than the bird trying to be conserved.
+
+### c.
+
+The study compares nest box occupancy in 2016 (when boxes were newly deployed) versus 2019 (after boxes had been established for three years). The key difference is that competitor species (Common Starlings and Tree Martins) showed stronger preference near forest edges n the established boxes (2019) compared to when boxes were first installed (2016), while Swift Parrot use remained consistent across both years.
+
+### d.
+
+```{r}
+
+#| echo: false
+#| tbl-cap: "Planned GLMM models for nest box occupancy analysis"
+#| label: tbl-models
+
+library(knitr)
+library(kableExtra)  #nicer formatting
+
+models <- data.frame(
+  Model = c("1", "2", "3", "4"),
+  Season = c("Both", "Both", "Both", "Both"),
+  Distance_to_Edge = c("Not included", "Included", "Included", "Included"),
+  Description = c(
+    "Null model with random effects only",
+    "Saturated model with season × distance interaction",
+    "Additive effects of season + distance",
+    "Season only (no distance effect)"
+  )
+)
+
+kable(models, 
+      col.names = c("Model", "Season", "Distance to forest edge", "Model description"),
+      align = c("c", "c", "c", "l")) %>%
+  kable_styling(bootstrap_options = "striped", 
+                full_width = FALSE,
+                position = "center") %>%
+  add_header_above(c(" " = 1, "Predictors" = 2, " " = 1))  # Optional header grouping
+```
+
+### e. 
+
+```{r}
+
+library(lme4)
+library(lmerTest)
+library(janitor)
+
+# 1. LOAD DATA (REPLACE FILENAME)
+data <- read.csv("data/occdist.csv") %>%  # ← CHANGE THIS
+  clean_names()  # Converts spaces/special chars to underscores
+
+data$edge_distance <- scale(data$edge_distance)
+
+# Verify cleaned names (optional)
+print(names(data))  # Should show "edge_distance" instead of "edge distance"
+
+# 2. CHECK FOR REQUIRED COLUMNS
+required_cols <- c("box", "sp", "season", "edge_distance")
+missing_cols <- setdiff(required_cols, colnames(data))
+if (length(missing_cols) > 0) {
+  stop("Missing required columns: ", paste(missing_cols, collapse = ", "))
+}
+
+# 3. RUN MODELS (now using cleaned names)
+null_model <- glmer(sp ~ 1 + (1|box), 
+                   data = data, 
+                   family = binomial,
+                   control = glmerControl(optimizer = "bobyqa"))
+
+sat_model <- glmer(sp ~ season * edge_distance + (1|box),
+                  data = data,
+                  family = binomial,
+                  control = glmerControl(optimizer = "bobyqa"))
+
+season_model <- glmer(sp ~ season + (1|box),
+                     data = data,
+                     family = binomial,
+                     control = glmerControl(optimizer = "bobyqa"))
+
+dist_model <- glmer(sp ~ edge_distance + (1|box),
+                   data = data,
+                   family = binomial,
+                   control = glmerControl(optimizer = "bobyqa"))
+
+# 4. MODEL COMPARISON
+model_comp <- data.frame(
+  Model = c("Null", "Saturated", "Season only", "Distance only"),
+  AIC = c(AIC(null_model), AIC(sat_model), AIC(season_model), AIC(dist_model)),
+  BIC = c(BIC(null_model), BIC(sat_model), BIC(season_model), BIC(dist_model))
+)
+
+
+```
+
+### f.
+
+```{r}
+
+
+library(DHARMa)
+
+# Null model diagnostics
+sim_null <- simulateResiduals(null_model)
+plot(sim_null)
+
+# Saturated model diagnostics
+sim_sat <- simulateResiduals(sat_model)
+plot(sim_sat)
+
+# Season-only model diagnostics
+sim_season <- simulateResiduals(season_model)
+plot(sim_season)
+
+# Distance-only model diagnostics
+sim_dist <- simulateResiduals(dist_model)
+plot(sim_dist)
+```
+
+### g.
+
+```{r}
+
+library(MuMIn)
+
+model.sel(null_model, sat_model, season_model, dist_model)
+```
+
+The best model as determined by Akaike’s Information Criterion (AIC) was the model that included an interaction between season and edge distance as predictors of species presence. This indicates that the relationship between edge distance and the likelihood of species presence changes depending on the breeding season.
+
+### h.
+
+```{r}
+# Load required packages
+library(lme4)      # For mixed models
+library(ggplot2)   # For plotting
+library(ggeffects) # For predictions
+library(janitor)   # For cleaning names
+
+# 1. Load and prepare data (using original file)
+bird_data <- read.csv("data/occdist.csv") %>% 
+  clean_names() %>%  # Fix column names (e.g., 'edge distance' -> 'edge_distance')
+  mutate(season = factor(season))  # Convert season to factor
+
+# 2. Fit the BEST MODEL identified in Part G
+# (Assuming the saturated model was best: sp ~ season * edge_distance + (1|box))
+best_model <- glmer(
+  sp ~ season * edge_distance + (1|box),
+  data = bird_data,
+  family = binomial,
+  control = glmerControl(optimizer = "bobyqa")
+)
+
+# 3. Generate predictions with 95% CI
+preds <- ggpredict(
+  best_model,
+  terms = c("edge_distance [0:900 by=50]", "season"),  # Full distance range
+  type = "random"  # Include random effects
+) %>% 
+  as.data.frame() %>% 
+  rename(season = group)
+
+# 4. Create the plot
+occupancy_plot <- ggplot() +
+  # Raw data (jittered points)
+  geom_point(
+    data = bird_data,
+    aes(x = edge_distance, y = sp, color = season),
+    position = position_jitter(width = 15, height = 0.05),
+    alpha = 0.3, 
+    size = 2.5
+  ) +
+  
+  # Model predictions (line + CI ribbon)
+  geom_ribbon(
+    data = preds,
+    aes(x = x, ymin = conf.low, ymax = conf.high, fill = season),
+    alpha = 0.2
+  ) +
+  geom_line(
+    data = preds,
+    aes(x = x, y = predicted, color = season),
+    linewidth = 1.2
+  ) +
+  
+  # Custom styling (non-default colors, no gridlines)
+  scale_color_manual(
+    values = c("#E69F00", "#009E73"),  # Orange and teal
+    name = "Season"
+  ) +
+  scale_fill_manual(
+    values = c("#E69F00", "#009E73"),
+    name = "Season"
+  ) +
+  labs(
+    x = "Distance from forest edge (meters)",
+    y = "Probability of Swift Parrot occupancy",
+    title = "Nest box occupancy probability"
+  ) +
+  theme_classic() +  # Removes gridlines
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold", size = 14),
+    axis.title = element_text(size = 12),
+    legend.position = c(0.85, 0.85)
+  )
+
+# Display plot
+print(occupancy_plot)
+```
+
+### i.
+
+**Figure 1.** Predicted probability of Swift Parrot (*Lathamus discolor*) nest box occupancy in relation to distance from forest edge, stratified by season (2016 vs. 2019). Points represent raw observational data (jittered vertically for visibility), where y = 1 indicates Swift Parrot presence and y = 0 indicates absence. Solid lines show predicted probabilities from the best-fit generalized linear mixed model (season × distance interaction with nest box as a random effect), with shaded 95% confidence intervals. Data from Stojanovic et al. (2021), Dryad Dataset <https://doi.org/10.5061/dryad.83bk3j9sb>.
+
+### j.
+
+```{r}
+# Load required packages
+library(ggeffects)  # For predictions with CI
+library(dplyr)      # For data manipulation
+
+# 1. Calculate predictions at 0m and 900m for each season
+predictions <- ggpredict(
+  best_model,  # Using the model from Part H
+  terms = c("edge_distance [0,900]", "season"),  # Specific distances
+  type = "random"  # Include random effects variance
+) %>% 
+  as.data.frame() %>%
+  select(
+    Season = group,
+    Distance = x,
+    Probability = predicted,
+    CI_low = conf.low,
+    CI_high = conf.high
+  ) %>%
+  mutate(across(Probability:CI_high, ~round(., 3)))  # Round to 3 decimal places
+
+# 2. Display the results
+print(predictions)
+```
+
+### k.
+
+The results show Swift Parrots strongly prefer nest boxes near forest edges. In 2016, occupancy probability was 54.5% at the edge (0m) but dropped to 8.7% at 900m into the forest. In 2019, edge occupancy was lower (24.6%) but showed the same steep decline to 8.7% at 900m. This pattern appears in Figure 1 as a rapid drop in the curves from left to right. The higher occupancy near edges likely occurs because Swift Parrots feed on nectar from flowering eucalypt trees that grow best in open, edge habitats. The difference between years (54.5% vs 24.6% at edges) may reflect changes in food availability or parrot population size between 2016 and 2019. The consistently low occupancy in forest interiors suggests these areas provide poor habitat, possibly due to fewer flowering trees or greater predation risk. These findings emphasize that protecting edge habitats is crucial for Swift Parrot conservation.
+
+## Problem 4
+
+### a. 
+
+I used simpler visualizations for my data because it did not have as much detail and data.
+
+These plots simlarly are using a confidence interval to graph the data and show it.
+
+The trends show how the birds lost favor in the nesting boxes between the two breeding seasons recorded.
+
+I was told to avoid small errors in assignments and do better work polishing submissions like homework.
+
+### b.
+
+:(
