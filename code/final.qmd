@@ -1,12 +1,12 @@
 ---
 title: "final"
-format: docx
+format: html
 editor: visual
 ---
 
 ## Problem 1
 
-### a. 
+### a.
 
 In part 1, they used a correlation test to assess the relationship between distance from the headwater (km) and annual total nitrogen load (kg/year). Since both are continuous variables and a p-value is reported, they probably used a Pearson correlation test. However, if the data weren’t normally distributed, a Spearman correlation could have been used instead.
 
@@ -14,7 +14,7 @@ In part 2, they likely used an analysis of variance (ANOVA) to test whether aver
 
 ## 
 
-### b. 
+### b.
 
 Post-hoc comparisons between source groups: The ANOVA test shows that there is a difference in average nitrogen load among the five sources, but it doesn’t say which specific sources are different from each other. A post-hoc test like Tukey’s HSD would help compare each pair of sources (for example, urban land vs. fertilizer) to see where the real differences lie.
 
@@ -30,17 +30,22 @@ Average nitrogen load differs among sources such as urban land, atmospheric depo
 
 ## Problem 2
 
-### a. 
+### a.
 
 ```{r}
+
+#| warning: false
+#| message: false
+#| error: false
 
 # Load required libraries
 library(tidyverse)
 library(lubridate)
 library(dplyr)
+library(here)
 
 # Read the data
-sst_data <- read_csv("data/SST_update2023.csv")
+sst_data <- read_csv(here("data", "SST_update2023.csv"))
 
 # Clean and process the data
 sst_clean <- sst_data %>%
@@ -63,10 +68,13 @@ str(sst_clean)
 
 ```
 
-### b. 
+### b.
 
 ```{r}
 
+#| warning: false
+#| message: false
+#| error: false
 
 #| fig-height: 5
 #| fig-width: 10
@@ -127,7 +135,7 @@ ggplot(sst_recent, aes(x = month_abb, y = mean_mnthly_sst,
 
 the 1 is placed in the column representing occupation by a specific bird species or emptiness.
 
-### b. 
+### b.
 
 The main difference is that Swift Parrots are the native target species for nest box conservation, while Common Starlings are invasive competitors and Tree Martins are native but non-target competitors. The study wants to analyze if providing box habitat helps the competitor more than the bird trying to be conserved.
 
@@ -138,6 +146,10 @@ The study compares nest box occupancy in 2016 (when boxes were newly deployed) v
 ### d.
 
 ```{r}
+
+#| warning: false
+#| message: false
+#| error: false
 
 #| echo: false
 #| tbl-cap: "Planned GLMM models for nest box occupancy analysis"
@@ -167,9 +179,13 @@ kable(models,
   add_header_above(c(" " = 1, "Predictors" = 2, " " = 1))  # Optional header grouping
 ```
 
-### e. 
+### e.
 
 ```{r}
+
+#| warning: false
+#| message: false
+#| error: false
 
 library(lme4)
 library(lmerTest)
@@ -226,6 +242,9 @@ model_comp <- data.frame(
 
 ```{r}
 
+#| warning: false
+#| message: false
+#| error: false
 
 library(DHARMa)
 
@@ -260,6 +279,11 @@ The best model as determined by Akaike’s Information Criterion (AIC) was the m
 ### h.
 
 ```{r}
+
+#| warning: false
+#| message: false
+#| error: false
+
 # Load required packages
 library(lme4)      # For mixed models
 library(ggplot2)   # For plotting
@@ -344,6 +368,11 @@ print(occupancy_plot)
 ### j.
 
 ```{r}
+
+#| warning: false
+#| message: false
+#| error: false
+
 # Load required packages
 library(ggeffects)  # For predictions with CI
 library(dplyr)      # For data manipulation
@@ -374,7 +403,7 @@ The results show Swift Parrots strongly prefer nest boxes near forest edges. In 
 
 ## Problem 4
 
-### a. 
+### a.
 
 I used simpler visualizations for my data because it did not have as much detail and data.
 
