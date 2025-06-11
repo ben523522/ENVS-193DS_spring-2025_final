@@ -1,0 +1,64 @@
+---
+title: "final"
+format: docx
+editor: visual
+---
+
+## Problem 1
+
+### a. 
+
+In part 1, they used a correlation test to assess the relationship between distance from the headwater (km) and annual total nitrogen load (kg/year). Since both are continuous variables and a p-value is reported, they probably used a Pearson correlation test. However, if the data weren’t normally distributed, a Spearman correlation could have been used instead.
+
+In part 2, they likely used an analysis of variance (ANOVA) to test whether average nitrogen load differs between multiple source types: urban land, atmospheric deposition, fertilizer, wastewater treatment, and grasslands. ANOVA is a standard method for comparing averages across more than two groups.
+
+## 
+
+### b. 
+
+Post-hoc comparisons between source groups: The ANOVA test shows that there is a difference in average nitrogen load among the five sources, but it doesn’t say which specific sources are different from each other. A post-hoc test like Tukey’s HSD would help compare each pair of sources (for example, urban land vs. fertilizer) to see where the real differences lie.
+
+Group averages and variation: The report should include the average nitrogen load for each source, along with a measure of spread like standard deviation or confidence intervals. This would make it easier to understand how much nitrogen each source contributes and how consistent those values are across observations.
+
+### c.
+
+In part 1:\
+There is a significant relationship between distance from the headwater and annual total nitrogen load, suggesting that nitrogen levels change as you move downstream. (Correlation test, r = \[correlation coefficient\], p = 0.03, test statistic = \[test statistic\], sample size = \[n\])
+
+In part 2:\
+Average nitrogen load differs among sources such as urban land, atmospheric deposition, fertilizer, wastewater treatment, and grasslands. Further comparisons are needed to identify which sources differ. (ANOVA, F = \[F value\], p = 0.02, degrees of freedom = \[df\], sample size = \[n\])
+
+## Problem 2
+
+### a. 
+
+```{r}
+
+# Load required libraries
+library(tidyverse)
+library(lubridate)
+
+# Read the data
+sst_data <- read_csv("data/SST_update2023.csv")
+
+# Clean and process the data
+sst_clean <- sst_data %>%
+  # Convert date to Date type and extract year and month
+  mutate(date = ymd(date),
+         year = year(date),
+         month = month(date)) %>%
+  # Group by year and month
+  group_by(year, month) %>%
+  # Calculate mean temperature for each month
+  summarise(mean_mnthly_sst = mean(temp, na.rm = TRUE)) %>%
+  # Arrange chronologically
+  arrange(year, month) %>%
+  # Convert to data frame
+  as.data.frame()
+
+# View the result
+head(sst_clean)
+
+
+
+```
